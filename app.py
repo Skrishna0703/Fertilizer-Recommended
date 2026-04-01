@@ -652,137 +652,150 @@ def create_npk_chart(N, P, K):
 
 
 def display_fertilizer_details(fertilizer_type):
-    """Display detailed information about the recommended fertilizer."""
+    """Display detailed information about the recommended fertilizer in 2-column layout with dropdown menus."""
     if fertilizer_type not in FERTILIZER_DATABASE:
         st.warning(f"Information not available for {fertilizer_type}")
         return
     
     info = FERTILIZER_DATABASE[fertilizer_type]
     
-    # Display fertilizer image (local or placeholder)
-    display_fertilizer_image(fertilizer_type)
+    # Create 2-column layout: Image (Left) | Details (Right)
+    col_image, col_details = st.columns([1, 1.5])
     
-    st.divider()
-    
-    # Title and Commercial Name
-    st.markdown(f"### 🌾 {info.get('name', fertilizer_type)}")
-    if "commercial_name" in info:
-        st.caption(f"_{info['commercial_name']}_")
-    
-    st.divider()
-    
-    # Nutrient Composition
-    if "nutrient_composition" in info:
-        st.subheader("🧪 Nutrient Composition")
-        st.info(info["nutrient_composition"])
-        st.divider()
-    
-    # What it is
-    if "what_it_is" in info:
-        st.subheader("❓ What Is It?")
-        st.write(info["what_it_is"])
-        st.divider()
-    
-    # Description
-    st.subheader("📋 Description")
-    st.write(info["description"])
-    st.divider()
-    
-    # Benefits (as list if available)
-    st.subheader("✅ Key Benefits")
-    if isinstance(info.get("benefits"), list):
-        for benefit in info["benefits"]:
-            st.write(f"• {benefit}")
-    else:
-        st.write(info.get("benefits", ""))
-    st.divider()
-    
-    # Deficiency Symptoms
-    if "deficiency_symptoms" in info:
-        st.subheader("⚠️ Deficiency Symptoms")
-        st.write(info["deficiency_symptoms"])
-        st.divider()
-    
-    # Ideal Crops
-    if "ideal_crops" in info:
-        st.subheader("🌽 Ideal for These Crops")
-        cols = st.columns(3)
-        crops = info["ideal_crops"]
-        for idx, crop in enumerate(crops):
-            with cols[idx % 3]:
-                st.write(f"✓ {crop}")
-        st.divider()
-    
-    # Application Information
-    st.subheader("🌱 Application Guide")
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.write("**Timing:** " + info.get("application_timing", "N/A"))
-        st.write("**Total Dosage:** " + info.get("usage", "N/A"))
-    
-    with col2:
-        if "method" in info:
-            if isinstance(info["method"], dict):
-                st.write("**Application Methods:**")
-                for method, desc in info["method"].items():
-                    st.write(f"- {method.capitalize()}: {desc}")
-            else:
-                st.write("**Method:** " + info["method"])
-    
-    st.divider()
-    
-    # Dosage Recommendations
-    if "dosage" in info:
-        st.subheader("📊 Dosage Recommendations")
-        if isinstance(info["dosage"], dict):
-            cols = st.columns(len(info["dosage"]))
-            for idx, (condition, dose) in enumerate(info["dosage"].items()):
-                with cols[idx]:
-                    st.metric(condition, dose)
-        else:
-            st.write(info["dosage"])
-        st.divider()
-    
-    # Storage Information
-    if "storage" in info:
-        st.subheader("📦 Storage Tips")
-        st.write(info["storage"])
-        st.divider()
-    
-    # Types Available
-    st.subheader("🏪 Types Available in Market")
-    if "types" in info and isinstance(info["types"], list):
-        for i, fert_type in enumerate(info["types"], 1):
-            st.write(f"{i}. {fert_type}")
-    st.divider()
-    
-    # Brands
-    if "brands" in info:
-        st.subheader("🏢 Popular Brands")
-        st.write(info["brands"])
-        st.divider()
-    
-    # Price
-    if "price_indicator" in info:
-        st.subheader("💰 Price Indication")
-        st.info(info["price_indicator"])
-    
-    # Special Information (for specific fertilizers)
-    if fertilizer_type == "MOP" and "mahadhan_info" in info:
-        st.divider()
-        st.info(f"ℹ️ {info['mahadhan_info']}")
-    
-    if fertilizer_type == "Compost":
-        st.divider()
-        st.subheader("🌱 Soil Improvement Benefits")
-        if "soil_improvement" in info:
-            for benefit in info["soil_improvement"]:
-                st.write(f"• {benefit}")
+    # ======================= COLUMN 1: IMAGE =======================
+    with col_image:
+        st.subheader("📸 Product")
+        display_fertilizer_image(fertilizer_type)
         
-        if "sustainability" in info:
-            st.divider()
-            st.success(info["sustainability"])
+        # Basic Info Card
+        st.markdown("---")
+        st.markdown(f"### 🌾 {info.get('name', fertilizer_type)}")
+        if "commercial_name" in info:
+            st.caption(f"_{info['commercial_name']}_")
+    
+    # ======================= COLUMN 2: EXPANDABLE DETAILS =======================
+    with col_details:
+        st.subheader("📋 Information")
+        
+        # 1. Nutrient Composition
+        if "nutrient_composition" in info:
+            with st.expander("🧪 Nutrient Composition", expanded=True):
+                st.info(info["nutrient_composition"])
+        
+        # 2. What it is
+        if "what_it_is" in info:
+            with st.expander("❓ What Is It?"):
+                st.write(info["what_it_is"])
+        
+        # 3. Description
+        with st.expander("📖 Description"):
+            st.write(info["description"])
+        
+        # 4. Benefits
+        with st.expander("✅ Key Benefits"):
+            if isinstance(info.get("benefits"), list):
+                for benefit in info["benefits"]:
+                    st.write(f"• {benefit}")
+            else:
+                st.write(info.get("benefits", ""))
+        
+        # 5. Ideal Crops
+        if "ideal_crops" in info:
+            with st.expander("🌽 Ideal Crops"):
+                crops = info["ideal_crops"]
+                col1, col2 = st.columns(2)
+                for idx, crop in enumerate(crops):
+                    if idx % 2 == 0:
+                        col1.write(f"✓ {crop}")
+                    else:
+                        col2.write(f"✓ {crop}")
+        
+        # 6. Deficiency Symptoms
+        if "deficiency_symptoms" in info:
+            with st.expander("⚠️ Deficiency Symptoms"):
+                st.warning(info["deficiency_symptoms"])
+        
+        # 7. Application Guide
+        with st.expander("🌱 Application Guide"):
+            col_app_timing, col_app_dosage = st.columns(2)
+            
+            with col_app_timing:
+                st.write("**Timing:**")
+                st.markdown(f"> {info.get('application_timing', 'N/A')}")
+            
+            with col_app_dosage:
+                st.write("**Total Dosage:**")
+                usage_text = info.get('usage', 'N/A')
+                first_line = usage_text.split('.')[0]
+                st.markdown(f"> {first_line}")
+            
+            if "method" in info:
+                st.write("**Method:**")
+                if isinstance(info["method"], dict):
+                    for method, desc in info["method"].items():
+                        st.write(f"- **{method.capitalize()}:** {desc}")
+                else:
+                    st.write(info["method"])
+        
+        # 8. Dosage Recommendations
+        if "dosage" in info:
+            with st.expander("📊 Dosage Recommendations"):
+                if isinstance(info["dosage"], dict):
+                    dosage_items = list(info["dosage"].items())
+                    cols = st.columns(min(3, len(dosage_items)))
+                    for idx, (condition, dose) in enumerate(dosage_items):
+                        with cols[idx % 3]:
+                            st.metric(condition, dose)
+                else:
+                    st.write(info["dosage"])
+        
+        # 9. Storage & Types
+        with st.expander("📦 Storage & Types"):
+            col_storage, col_types = st.columns(2)
+            
+            with col_storage:
+                st.write("**Storage Tips:**")
+                if "storage" in info:
+                    st.write(info["storage"])
+            
+            with col_types:
+                st.write("**Types Available:**")
+                if "types" in info and isinstance(info["types"], list):
+                    for i, fert_type in enumerate(info["types"], 1):
+                        st.write(f"{i}. {fert_type}")
+        
+        # 10. Brands & Price
+        with st.expander("🏢 Brands & Pricing"):
+            col_brands, col_price = st.columns(2)
+            
+            with col_brands:
+                st.write("**Popular Brands:**")
+                if "brands" in info:
+                    st.write(info["brands"])
+            
+            with col_price:
+                st.write("**Price Indication:**")
+                if "price_indicator" in info:
+                    st.info(info["price_indicator"])
+        
+        # 11. Special Information
+        if fertilizer_type == "MOP" and "mahadhan_info" in info:
+            with st.expander("ℹ️ Special Information"):
+                st.info(f"**Mahadhan MOP:** {info['mahadhan_info']}")
+        
+        if fertilizer_type == "Compost":
+            with st.expander("♻️ Sustainability Benefits"):
+                col_soil, col_sustain = st.columns(2)
+                
+                with col_soil:
+                    st.write("**Soil Improvement:**")
+                    if "soil_improvement" in info:
+                        for benefit in info["soil_improvement"]:
+                            st.write(f"• {benefit}")
+                
+                with col_sustain:
+                    if "sustainability" in info:
+                        st.success(info["sustainability"])
 
 
 def render_sidebar():
