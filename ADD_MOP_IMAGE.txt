@@ -1,0 +1,219 @@
+════════════════════════════════════════════════════════════════════════════════
+                        ADD MOP IMAGE TO YOUR SYSTEM
+════════════════════════════════════════════════════════════════════════════════
+
+You have selected: MAHADHAN MOP FERTILIZER (Muriate of Potash)
+
+This is the image: Mahadhan MOP Product 50kg Bag
+Folder: images/MOP/
+
+════════════════════════════════════════════════════════════════════════════════
+                              QUICK INSTRUCTIONS
+════════════════════════════════════════════════════════════════════════════════
+
+STEP 1: Save the MOP Image
+─────────────────────────────────────────────────────────────────────────────
+If you have the MOP fertilizer image shown in the screenshot:
+
+✓ Right-click on the image → Save image as
+✓ Name it: "mahadhan_mop.jpg" or just "mop.jpg"
+✓ Save to your Downloads folder or Desktop
+
+STEP 2: Copy to App Folder
+─────────────────────────────────────────────────────────────────────────────
+Windows File Explorer Method:
+1. Press: Windows key + R
+2. Paste: C:\Users\shrik\Desktop\Project\Fertilizer\images\MOP
+3. Press Enter (opens the MOP folder)
+4. Drag & Drop your saved image file here
+5. Done! ✅
+
+PowerShell Method:
+$ cd C:\Users\shrik\Desktop\Project\Fertilizer\images\MOP
+$ copy "C:\Users\YourUsername\Downloads\mahadhan_mop.jpg" .\
+
+STEP 3: Verify in App
+─────────────────────────────────────────────────────────────────────────────
+1. Go to: http://localhost:8501
+2. Enter soil values that trigger MOP recommendation:
+   - Nitrogen (N): 50-100
+   - Phosphorus (P): 30-60
+   - Potassium (K): 30-80
+   - pH: 6.0-7.5
+   - Organic Matter: 0.5-1.5%
+   - Crop: Potato, Sugarcane, Fruit, or Vegetable
+
+3. Click "Analyze & Recommend"
+4. If MOP is recommended → Your image appears! 🎉
+
+════════════════════════════════════════════════════════════════════════════════
+                           MOP FERTILIZER DETAILS
+════════════════════════════════════════════════════════════════════════════════
+
+Product Name: MAHADHAN MOP FERTILIZER
+Type: Muriate of Potash (Potassium Chloride)
+Nutrient: POTASSIUM - 60% K2O (Potassium Oxide)
+
+✓ Contains: 60% Potassium Oxide, 47% Chloride
+✓ Common Name: Mahadhan brand
+✓ Subsidy: Manufactured under govt. subsidy scheme
+✓ Package: Usually 50kg bags
+
+Benefits:
+├─ Enhances crop quality and appearance
+├─ Improves disease/pest resistance
+├─ Strengthens stems and roots
+├─ Essential for fruits & vegetables
+├─ Increases sugar content in produce
+└─ Improves shelf life
+
+Ideal Crops:
+├─ Potatoes (70-80 kg/ha)
+├─ Sugarcane (40-60 kg/ha)
+├─ Fruits (40-60 kg/ha)
+├─ Vegetables (20-40 kg/ha)
+├─ Tobacco (50-60 kg/ha)
+└─ Cotton (20-30 kg/ha)
+
+Application:
+├─ Recommended Dose: 40-60 kg/hectare
+├─ Timing: During active growth or pre-flowering
+├─ Method: Mix with soil or apply through irrigation
+└─ Note: Split application recommended for better absorption
+
+Storage:
+├─ Keep completely dry
+├─ Very hygroscopic (absorbs moisture)
+├─ Use moisture-proof bags
+└─ Store in cool, ventilated place
+
+════════════════════════════════════════════════════════════════════════════════
+                         COMPLETE FERTILIZER DATABASE
+════════════════════════════════════════════════════════════════════════════════
+
+Your app now includes COMPREHENSIVE DETAILS for all 7 fertilizer types:
+
+1. UREA (46% N)
+   ├─ High nitrogen fertilizer
+   ├─ Best for: Leaf growth crops
+   └─ Dosage: 200-300 kg/ha
+
+2. DAP (18% N, 46% P)
+   ├─ Phosphorus-rich fertilizer
+   ├─ Best for: Root development, seeds
+   └─ Dosage: 150-200 kg/ha
+
+3. NPK (Balanced 10:26:26)
+   ├─ Compound fertilizer
+   ├─ Best for: All general crops
+   └─ Dosage: 250-350 kg/ha
+
+4. SSP (16% P)
+   ├─ Single super phosphate
+   ├─ Best for: Phosphorus deficiency
+   └─ Dosage: 100-150 kg/ha
+
+5. MOP (60% K2O) ← YOUR MOP IMAGE HERE
+   ├─ Potassium-rich fertilizer
+   ├─ Best for: Fruits, vegetables, potatoes
+   └─ Dosage: 40-60 kg/ha
+
+6. ZINC SULPHATE (21% Zn + 11% S)
+   ├─ Micronutrient fertilizer
+   ├─ Best for: Cereals, pulses, oilseeds
+   └─ Dosage: 5-10 kg/ha
+
+7. COMPOST (0.5-2% N)
+   ├─ Organic soil conditioner
+   ├─ Best for: Long-term soil health
+   └─ Dosage: 5-10 tons/ha
+
+════════════════════════════════════════════════════════════════════════════════
+                        INFORMATION NOW DISPLAYED IN APP
+════════════════════════════════════════════════════════════════════════════════
+
+When you get a fertilizer recommendation, you'll now see:
+
+✓ Fertilizer Product Image (from images/MOP/ folder)
+✓ Commercial Name & Type
+✓ Full Nutrient Composition
+✓ Detailed Description
+✓ What it is & how it works
+✓ Key Benefits (as bullet list)
+✓ Deficiency Symptoms
+✓ Ideal Crops for use
+✓ Application Timing
+✓ Dosage Recommendations for different soil types
+✓ Storage Instructions
+✓ Types Available in Market
+✓ Popular Brands
+✓ Price Indication
+✓ Special tips for specific fertilizers
+
+════════════════════════════════════════════════════════════════════════════════
+                          FOLDER STRUCTURE NOW READY
+════════════════════════════════════════════════════════════════════════════════
+
+Current Status:
+
+C:\Users\shrik\Desktop\Project\Fertilizer\images\
+├── Urea/               ← Ready for image
+├── DAP/                ← Ready for image
+├── NPK/                ← Ready for image
+├── SSP/                ← Ready for image
+├── MOP/                ← ADD YOUR MAHADHAN MOP IMAGE HERE ✓
+├── Zinc Sulphate/      ← Ready for image
+└── Compost/            ← Ready for image
+
+════════════════════════════════════════════════════════════════════════════════
+                            TEST THE FULL SYSTEM
+════════════════════════════════════════════════════════════════════════════════
+
+Complete Test Steps:
+
+1. Add MOP image to: C:\Users\shrik\Desktop\Project\Fertilizer\images\MOP\
+   
+2. Refresh Streamlit: Ctrl+R at http://localhost:8501
+   
+3. Fill in soil values:
+   - N: 70
+   - P: 45
+   - K: 50
+   - pH: 6.5
+   - Organic Matter: 1.0%
+   - Crop: "Potato"
+   
+4. Click "Analyze & Recommend"
+   
+5. Expected Result:
+   ✅ Recommendation: "MOP (Muriate of Potash)"
+   ✅ Your product image displays
+   ✅ COMPREHENSIVE information shown:
+      - Mahadhan MOP branding
+      - 60% K2O composition
+      - Full benefits list
+      - "Ideal for: Potatoes" visible
+      - Dosage: 40-60 kg/ha
+      - Storage tips
+      - And much more!
+
+════════════════════════════════════════════════════════════════════════════════
+                          READY TO ENHANCE YOUR SYSTEM
+════════════════════════════════════════════════════════════════════════════════
+
+Next Steps:
+1. ✓ Save MOP image to MOP folder
+2. ✓ Add other 6 fertilizer images
+3. ✓ Refresh app
+4. ✓ Test recommendations
+5. ✓ System fully operational!
+
+For other fertilizer images, use:
+- Google Images: Search "Urea 50kg bag", "DAP fertilizer", etc.
+- Manufacturer websites: KRIBHCO, IFFCO, Mahadhan sites
+- Agricultural portals
+
+════════════════════════════════════════════════════════════════════════════════
+Last Updated: April 2026
+Status: Ready to add your first MOP image!
+════════════════════════════════════════════════════════════════════════════════

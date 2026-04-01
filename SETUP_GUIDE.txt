@@ -1,0 +1,155 @@
+# 🌾 Fertilizer Recommendation System - Folder Setup
+
+## 📁 Your Folder Structure (CREATED)
+
+```
+C:\Users\shrik\Desktop\Project\Fertilizer\
+├── images/                          ← IMAGES FOLDER (CREATED)
+│   ├── Urea/                        ← Add Urea product images here
+│   ├── DAP/                         ← Add DAP product images here
+│   ├── NPK_Balanced/                ← Add NPK product images here
+│   └── SSP/                         ← Add SSP product images here
+│
+├── app.py                           ← Main Streamlit app (UPDATED)
+├── train_model.py                   ← ML model training script
+├── fertilizer_model.pkl             ← Trained ML model
+├── crop_encoder.pkl                 ← Crop encoder
+├── fertilizer_encoder.pkl           ← Fertilizer encoder
+├── scaler.pkl                       ← Feature scaler
+│
+├── soil.csv                         ← Sample datasets
+├── soil_health_card.csv
+├── maharashtra_soil_data.csv
+├── fertilizer_recommendation.csv
+│
+├── IMAGES_README.md                 ← Detailed image setup guide
+└── SETUP_GUIDE.txt                  ← This file
+```
+
+## 🎯 Quick Start - 3 Steps
+
+### Step 1: Download Fertilizer Images
+Search and download images for:
+1. **Urea** - Find a fertilizer bag image showing Urea product
+2. **DAP** - Find a fertilizer bag image showing DAP (Di-Ammonium Phosphate)
+3. **NPK Balanced** - Find fertilizer bag showing 10:26:26 or similar NPK ratio
+4. **SSP** - Find fertilizer bag image showing Single Super Phosphate
+
+**Where to search:**
+- Google Images: "Urea fertilizer bag"
+- Agricultural websites
+- Fertilizer manufacturer websites
+
+### Step 2: Add Images to Folders
+
+**Navigate to each folder and add the image:**
+
+1. Open Windows File Explorer
+2. Go to: `C:\Users\shrik\Desktop\Project\Fertilizer\images\Urea\`
+3. Paste your Urea image here
+4. Repeat for DAP, NPK_Balanced, and SSP folders
+
+**File naming:** Can be anything!
+- ✅ `urea.jpg`
+- ✅ `fertilizer_bag_1.png`
+- ✅ `product.jpg`
+
+### Step 3: Restart & Test
+
+1. Refresh Streamlit (Ctrl+R in browser or restart terminal)
+2. Make a soil analysis recommendation
+3. **Images should now appear!** 🎉
+
+## 📸 Image Specifications
+
+| Aspect | Requirement |
+|--------|------------|
+| Format | JPG, PNG, JPEG, or WEBP |
+| Resolution | 400×400 px to 1200×800 px |
+| File Size | Less than 2MB |
+| Content | Fertilizer product/bag |
+| Quality | Clear, well-lit |
+
+## ✨ What Happens
+
+### Before Adding Images:
+```
+📸 Urea Product Image
+Add image to: images/Urea/
+Supported formats: JPG, PNG, JPEG, WEBP
+```
+(Placeholder box shows where to add images)
+
+### After Adding Images:
+```
+[ACTUAL FERTILIZER BAG IMAGE SHOWS]
+Caption: "Urea Fertilizer"
+```
+
+## 🔍 Example Image Sources
+
+### Official Sources:
+- KRIBHCO (Krishak Bharati) - Indian fertilizer company
+- IFFCO - Indian Farmers Fertilizer Cooperative
+- Government Agricultural Department websites
+- FAQ (Fertilizer Association of India)
+
+### Free Image Sites:
+- Google Images (agriculture)
+- Unsplash
+- Pexels
+- Pixabay
+
+### Search Terms:
+- "Urea fertilizer 50kg bag"
+- "DAP Di-Ammonium Phosphate"
+- "NPK fertilizer 10-26-26"
+- "SSP Single Super Phosphate"
+
+## 🚀 Next Steps
+
+1. ✅ Folder structure created (`images/Urea/`, `images/DAP/`, etc.)
+2. ✅ App updated to use local images
+3. ⏳ **YOU:** Download and add fertilizer images to each folder
+4. ⏳ **YOU:** Restart the app
+5. ✨ See fertilizer images in recommendations!
+
+## 🎓 Tips
+
+### Best Practice:
+- Use **real fertilizer bag photos** (not generic agriculture images)
+- Show **product packaging** (bags/containers)
+- Use **consistent image quality** across all fertilizers
+- Include **N-P-K ratio visible** in the image (e.g., "46-0-0", "10-26-26")
+
+### Recommended Image Content:
+- **Urea:** White/off-white granules, bag showing 46% N
+- **DAP:** Gray/brown granules, showing 18:46 ratio
+- **NPK Balanced:** Mixed colors, showing balanced ratio like 10:26:26
+- **SSP:** Grayish powder/granules, showing phosphorus percentage
+
+## 🔧 Troubleshooting
+
+**Q: Images still not showing?**
+A: 
+1. Ensure image is in the CORRECT folder name: `Urea`, `DAP`, `NPK_Balanced`, `SSP`
+2. Check file extension: must be `.jpg`, `.png`, `.jpeg`, or `.webp`
+3. Restart Streamlit app completely
+4. Refresh browser (Ctrl+R)
+
+**Q: Which image shows if I add multiple?**
+A: First image alphabetically. Example: `001_urea_bag.jpg` displays first
+
+**Q: Can I use images from internet?**
+A: Yes! But ensure you have rights to use them
+
+**Q: Image quality looks bad?**
+A: Try a different image with better resolution
+
+## 📞 Help
+
+For detailed image setup instructions, see: **IMAGES_README.md**
+
+---
+
+**Status:** ✅ App Ready | ⏳ Waiting for Images | 🚀 Ready to Launch

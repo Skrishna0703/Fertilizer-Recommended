@@ -1,0 +1,16 @@
+Nitrogen,Phosphorus,Potassium,pH_Level,Crop_Name,Fertiliser
+50,30,30,6.7,Rice,NPK
+45,35,40,7.1,Wheat,DAP
+55,25,25,6.5,Maize,Urea
+65,25,15,6.3,Cotton,Urea
+35,45,45,7.2,Pulses,SSP
+75,35,20,5.9,Sugarcane,Urea
+50,40,45,7.0,Barley,NPK
+60,20,20,6.6,Soybean,Urea
+70,35,15,6.4,Groundnut,Urea
+40,50,50,7.3,Chickpea,DAP
+80,30,10,5.8,Tobacco,Urea
+55,30,30,6.8,Oats,NPK
+65,20,20,6.5,Millet,Urea
+40,55,45,7.2,Lentil,SSP
+75,40,15,6.2,Jute,Urea

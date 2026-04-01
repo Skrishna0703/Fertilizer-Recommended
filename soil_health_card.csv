@@ -1,0 +1,16 @@
+N,P,K,pH,Crop,Fertilizer
+60,20,20,6.5,Rice,Urea
+40,40,40,7.0,Wheat,DAP
+50,30,30,6.8,Maize,NPK
+70,20,10,6.2,Cotton,Urea
+30,50,40,7.2,Pulses,SSP
+80,40,20,5.8,Sugarcane,Urea
+45,45,45,7.1,Barley,DAP
+55,25,25,6.6,Soybean,Urea
+65,35,15,6.4,Groundnut,NPK
+40,50,50,7.3,Chickpea,DAP
+75,30,10,5.9,Tobacco,Urea
+50,35,35,6.9,Oats,NPK
+60,25,25,6.5,Millet,Urea
+35,55,45,7.2,Lentil,SSP
+70,40,15,6.1,Jute,Urea
