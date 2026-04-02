@@ -1009,6 +1009,16 @@ def main():
         print(f"  - Unique crops: {len(crop_encoder.classes_)}")
         print(f"  - Unique fertilizers: {len(fertilizer_encoder.classes_)}")
         
+        # ====== Step 6: Handle Missing Values ======
+        print("\n" + "=" * 70)
+        print("HANDLING MISSING VALUES")
+        print("=" * 70)
+        # Replace any NaN or Inf values with column median
+        merged_df.replace([np.inf, -np.inf], np.nan, inplace=True)
+        for col in merged_df.select_dtypes(include=[np.number]).columns:
+            merged_df[col].fillna(merged_df[col].median(), inplace=True)
+        print(f"✓ Missing values handled - NaN and Inf values replaced with column medians")
+        
         # ====== Step 6: Separate Features and Target ======
         # Include engineered features for better model accuracy
         feature_cols = ['N', 'P', 'K', 'PH', 'N_P_Ratio', 'N_K_Ratio', 'P_K_Ratio', 
