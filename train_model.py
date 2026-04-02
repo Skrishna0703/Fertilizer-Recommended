@@ -868,23 +868,25 @@ def load_prediction_models(model_dir='.'):
     
     Returns:
     --------
-    tuple : (model, crop_encoder, fertilizer_encoder, scaler)
+    tuple : (model, crop_encoder, fertilizer_encoder, scaler, selector)
     """
     model_path = os.path.join(model_dir, 'fertilizer_model.pkl')
     crop_encoder_path = os.path.join(model_dir, 'crop_encoder.pkl')
     fertilizer_encoder_path = os.path.join(model_dir, 'fertilizer_encoder.pkl')
     scaler_path = os.path.join(model_dir, 'scaler.pkl')
+    selector_path = os.path.join(model_dir, 'feature_selector.pkl')
     
     model = joblib.load(model_path)
     crop_encoder = joblib.load(crop_encoder_path)
     fertilizer_encoder = joblib.load(fertilizer_encoder_path)
     scaler = joblib.load(scaler_path)
+    selector = joblib.load(selector_path) if os.path.exists(selector_path) else None
     
-    return model, crop_encoder, fertilizer_encoder, scaler
+    return model, crop_encoder, fertilizer_encoder, scaler, selector
 
 
 def predict_fertilizer(N, P, K, pH, crop, model=None, crop_encoder=None,
-                      fertilizer_encoder=None, scaler=None, model_dir='.'):
+                      fertilizer_encoder=None, scaler=None, selector=None, model_dir='.'):
     """
     Predict fertilizer recommendation based on soil parameters.
     
@@ -908,6 +910,8 @@ def predict_fertilizer(N, P, K, pH, crop, model=None, crop_encoder=None,
         Fertilizer encoder (if None, loads from disk)
     scaler : StandardScaler or None
         Feature scaler (if None, loads from disk)
+    selector : SelectKBest or None
+        Feature selector (if None, loads from disk)
     model_dir : str
         Directory containing saved models
     
@@ -917,7 +921,7 @@ def predict_fertilizer(N, P, K, pH, crop, model=None, crop_encoder=None,
     """
     # Load models if not provided
     if model is None:
-        model, crop_encoder, fertilizer_encoder, scaler = load_prediction_models(model_dir)
+        model, crop_encoder, fertilizer_encoder, scaler, selector = load_prediction_models(model_dir)
     
     try:
         # Prepare input features - create a temporary dataframe for feature engineering
@@ -932,6 +936,11 @@ def predict_fertilizer(N, P, K, pH, crop, model=None, crop_encoder=None,
         # Apply advanced feature engineering
         temp_df = create_advanced_features(temp_df)
         
+        # Handle NaN values
+        temp_df.replace([np.inf, -np.inf], np.nan, inplace=True)
+        for col in temp_df.select_dtypes(include=[np.number]).columns:
+            temp_df[col].fillna(temp_df[col].median(), inplace=True)
+        
         # Encode crop
         crop_encoded = crop_encoder.transform([crop])[0]
         
@@ -945,6 +954,10 @@ def predict_fertilizer(N, P, K, pH, crop, model=None, crop_encoder=None,
         
         # Extract features in correct order
         features = temp_df[feature_cols].values
+        
+        # Apply feature selection if selector exists
+        if selector is not None:
+            features = selector.transform(features)
         
         # Scale features
         features_scaled = scaler.transform(features)

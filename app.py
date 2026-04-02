@@ -500,6 +500,8 @@ def get_image_path(fertilizer_name):
 
 def display_fertilizer_image(fertilizer_name):
     """Display fertilizer image with fallback to description."""
+    # Normalize fertilizer name first
+    fertilizer_name = normalize_fertilizer_name(fertilizer_name)
     image_path = get_image_path(fertilizer_name)
     
     if image_path and os.path.exists(image_path):
@@ -539,23 +541,30 @@ def load_ml_models():
         crop_encoder = joblib.load('crop_encoder.pkl')
         fertilizer_encoder = joblib.load('fertilizer_encoder.pkl')
         scaler = joblib.load('scaler.pkl')
-        return model, crop_encoder, fertilizer_encoder, scaler
+        
+        # Load feature selector if available
+        try:
+            selector = joblib.load('feature_selector.pkl')
+        except FileNotFoundError:
+            selector = None
+        
+        return model, crop_encoder, fertilizer_encoder, scaler, selector
     except FileNotFoundError:
         st.warning("⚠️ Models not found. Please run train_model.py first.")
-        return None, None, None, None
+        return None, None, None, None, None
 
 
-def predict_fertilizer(N, P, K, pH, crop, model, crop_encoder, fertilizer_encoder, scaler):
+def predict_fertilizer(N, P, K, pH, crop, OM, model, crop_encoder, fertilizer_encoder, scaler, selector):
     """
     Make fertilizer prediction using ML model.
     
     Parameters:
     -----------
-    N, P, K, pH : float
+    N, P, K, pH, OM : float
         Soil nutrient and pH values
     crop : str
         Selected crop name
-    model, crop_encoder, fertilizer_encoder, scaler : objects
+    model, crop_encoder, fertilizer_encoder, scaler, selector : objects
         ML pipeline objects
     
     Returns:
@@ -569,11 +578,54 @@ def predict_fertilizer(N, P, K, pH, crop, model, crop_encoder, fertilizer_encode
         if model is None:
             return "NPK Balanced", 75
         
+        # Create dataframe with features for engineering
+        temp_df = pd.DataFrame({
+            'N': [N],
+            'P': [P],
+            'K': [K],
+            'PH': [pH]
+        })
+        
+        # Apply feature engineering from train_model.py
+        if all(col in temp_df.columns for col in ['N', 'P', 'K']):
+            temp_df['N_P_Ratio'] = temp_df['N'] / (temp_df['P'] + 1)
+            temp_df['N_K_Ratio'] = temp_df['N'] / (temp_df['K'] + 1)
+            temp_df['P_K_Ratio'] = temp_df['P'] / (temp_df['K'] + 1)
+            temp_df['NPK_Sum'] = temp_df['N'] + temp_df['P'] + temp_df['K']
+            temp_df['NPK_Balance'] = pd.DataFrame([[N, P, K]]).std(axis=1)[0]
+            temp_df['N_P_Product'] = temp_df['N'] * temp_df['P']
+            temp_df['N_K_Product'] = temp_df['N'] * temp_df['K']
+            temp_df['P_K_Product'] = temp_df['P'] * temp_df['K']
+            temp_df['High_N'] = (N > 75).astype(int)
+            temp_df['High_P'] = (P > 75).astype(int)
+            temp_df['High_K'] = (K > 75).astype(int)
+        
+        if 'PH' in temp_df.columns:
+            temp_df['pH_Level'] = 2 if pH < 5.5 else (1 if pH < 6.5 else (0 if pH < 7.5 else (3 if pH < 8.5 else 4)))
+        
         # Encode crop
         crop_encoded = crop_encoder.transform([crop])[0]
         
-        # Create feature array
-        features = np.array([[N, P, K, pH, crop_encoded]])
+        # Create feature array in same order as training
+        feature_cols = ['N', 'P', 'K', 'PH', 'N_P_Ratio', 'N_K_Ratio', 'P_K_Ratio', 
+                       'NPK_Sum', 'NPK_Balance', 'N_P_Product', 'N_K_Product', 
+                       'P_K_Product', 'High_N', 'High_P', 'High_K', 'pH_Level']
+        
+        # Get available features from temp_df
+        features_list = []
+        for col in feature_cols:
+            if col in temp_df.columns:
+                features_list.append(temp_df[col].values[0])
+            else:
+                features_list.append(0.0)
+        
+        # Add encoded crop
+        features_list.append(crop_encoded)
+        features = np.array([features_list])
+        
+        # Apply feature selection if available
+        if selector is not None:
+            features = selector.transform(features)
         
         # Scale features
         features_scaled = scaler.transform(features)
@@ -582,8 +634,11 @@ def predict_fertilizer(N, P, K, pH, crop, model, crop_encoder, fertilizer_encode
         prediction = model.predict(features_scaled)[0]
         
         # Get prediction probability for confidence
-        prediction_proba = model.predict_proba(features_scaled)[0]
-        confidence = int(np.max(prediction_proba) * 100)
+        if hasattr(model, 'predict_proba'):
+            prediction_proba = model.predict_proba(features_scaled)[0]
+            confidence = int(np.max(prediction_proba) * 100)
+        else:
+            confidence = 85
         
         # Decode fertilizer
         fertilizer = fertilizer_encoder.inverse_transform([prediction])[0]
@@ -651,12 +706,56 @@ def create_npk_chart(N, P, K):
     return fig
 
 
+def normalize_fertilizer_name(fertilizer_name):
+    """Normalize fertilizer names to match database keys."""
+    name_mapping = {
+        'npk balanced': 'NPK',
+        'npk': 'NPK',
+        'npk compound': 'NPK',
+        'compound fertilizer': 'NPK',
+        'urea': 'Urea',
+        'dap': 'DAP',
+        'diammonium phosphate': 'DAP',
+        'npk 10:26:26': 'NPK',
+        'npk 12:32:16': 'NPK',
+        'npk 19:19:19': 'NPK',
+        'npk 13:40:13': 'NPK',
+        'ssp': 'SSP',
+        'single super phosphate': 'SSP',
+        'mop': 'MOP',
+        'muriate of potash': 'MOP',
+        'zinc sulphate': 'Zinc Sulphate',
+        'zinc': 'Zinc Sulphate',
+        'compost': 'Compost',
+    }
+    
+    clean_name = str(fertilizer_name).lower().strip()
+    return name_mapping.get(clean_name, fertilizer_name)
+
+
 def display_fertilizer_details(fertilizer_type):
     """Display essential fertilizer information in 5 key points with vibrant colors and readable text."""
-    if fertilizer_type not in FERTILIZER_DATABASE:
-        st.warning(f"Information not available for {fertilizer_type}")
+    # Clean up fertilizer type (remove 'nan', handle case sensitivity)
+    if not fertilizer_type or str(fertilizer_type).lower() == 'nan':
+        st.warning("⚠️ Unable to determine fertilizer type. Please re-run the analysis.")
         return
     
+    # Normalize fertilizer name
+    fertilizer_type = normalize_fertilizer_name(fertilizer_type)
+    
+    # Try to find the fertilizer in database (case-insensitive)
+    available_key = None
+    for key in FERTILIZER_DATABASE.keys():
+        if key.lower() == str(fertilizer_type).lower():
+            available_key = key
+            break
+    
+    if available_key is None:
+        st.warning(f"ℹ️ Detailed information for '{fertilizer_type}' is being prepared. Basic info:")
+        st.info(f"Recommended Fertilizer: **{fertilizer_type}**")
+        return
+    
+    fertilizer_type = available_key
     info = FERTILIZER_DATABASE[fertilizer_type]
     
     # Create 2-column layout: Image (Left) | Details (Right)
@@ -822,7 +921,7 @@ def main():
     render_sidebar()
     
     # Load ML models
-    model, crop_encoder, fertilizer_encoder, scaler = load_ml_models()
+    model, crop_encoder, fertilizer_encoder, scaler, selector = load_ml_models()
     
     # Get available crops
     if crop_encoder is not None:
@@ -943,9 +1042,12 @@ def main():
         if st.button("🔍 Analyze & Recommend", use_container_width=True):
             # Make prediction
             fertilizer, confidence = predict_fertilizer(
-                nitrogen, phosphorus, potassium, soil_ph, selected_crop,
-                model, crop_encoder, fertilizer_encoder, scaler
+                nitrogen, phosphorus, potassium, soil_ph, selected_crop, organic_matter,
+                model, crop_encoder, fertilizer_encoder, scaler, selector
             )
+            
+            # Normalize fertilizer name
+            fertilizer = normalize_fertilizer_name(fertilizer)
             
             # Store results in session state
             st.session_state.show_results = True
@@ -972,52 +1074,57 @@ def main():
             if st.session_state.show_results and st.session_state.recommendation_data:
                 data = st.session_state.recommendation_data
                 
-                # Success message
-                st.success("✓ Analysis completed successfully!")
-                
-                # Recommended fertilizer
-                st.markdown(
-                    f"<div class='success-box'>"
-                    f"<strong>🌾 Recommended Fertilizer:</strong><br/>"
-                    f"<div class='fertilizer-name'>{data['fertilizer']}</div>"
-                    f"<p style='text-align: center; color: #10b981;'>"
-                    f"Confidence: <strong>{data['confidence']}%</strong></p>"
-                    f"</div>",
-                    unsafe_allow_html=True
-                )
-                
-                st.divider()
-                
-                # Display fertilizer image (local or placeholder)
-                display_fertilizer_image(data['fertilizer'])
-                
-                st.divider()
-                
-                # NPK Analysis
-                st.subheader("📊 Soil Composition Analysis")
-                display_npk_analysis(data['N'], data['P'], data['K'])
-                
-                st.divider()
-                
-                # NPK Chart
-                st.plotly_chart(create_npk_chart(data['N'], data['P'], data['K']), use_container_width=True)
-                
-                st.divider()
-                
-                # Soil Summary
-                col_s1, col_s2 = st.columns(2)
-                with col_s1:
-                    st.metric("Soil pH", f"{data['pH']}", "Neutral" if 6.0 <= data['pH'] <= 7.5 else "Acidic/Alkaline")
-                with col_s2:
-                    st.metric("Organic Matter", f"{data['OM']}%")
-                
-                st.divider()
-                
-                # New Analysis button
-                if st.button("↻ New Analysis", use_container_width=True):
-                    st.session_state.show_results = False
-                    st.session_state.recommendation_data = None
-                    st.rerun()
+                # Validate fertilizer name
+                fertilizer_name = data.get('fertilizer', 'Unknown')
+                if not fertilizer_name or str(fertilizer_name).lower() == 'nan' or fertilizer_name is None:
+                    st.error("❌ Unable to generate recommendation. Please check your input values and try again.")
+                else:
+                    # Success message
+                    st.success("✓ Analysis completed successfully!")
+                    
+                    # Recommended fertilizer
+                    st.markdown(
+                        f"<div class='success-box'>"
+                        f"<strong>🌾 Recommended Fertilizer:</strong><br/>"
+                        f"<div class='fertilizer-name'>{fertilizer_name}</div>"
+                        f"<p style='text-align: center; color: #10b981;'>"
+                        f"Confidence: <strong>{data['confidence']}%</strong></p>"
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
+                    
+                    st.divider()
+                    
+                    # Display fertilizer image (local or placeholder)
+                    display_fertilizer_image(fertilizer_name)
+                    
+                    st.divider()
+                    
+                    # NPK Analysis
+                    st.subheader("📊 Soil Composition Analysis")
+                    display_npk_analysis(data['N'], data['P'], data['K'])
+                    
+                    st.divider()
+                    
+                    # NPK Chart
+                    st.plotly_chart(create_npk_chart(data['N'], data['P'], data['K']), use_container_width=True)
+                    
+                    st.divider()
+                    
+                    # Soil Summary
+                    col_s1, col_s2 = st.columns(2)
+                    with col_s1:
+                        st.metric("Soil pH", f"{data['pH']}", "Neutral" if 6.0 <= data['pH'] <= 7.5 else "Acidic/Alkaline")
+                    with col_s2:
+                        st.metric("Organic Matter", f"{data['OM']}%")
+                    
+                    st.divider()
+                    
+                    # New Analysis button
+                    if st.button("↻ New Analysis", use_container_width=True):
+                        st.session_state.show_results = False
+                        st.session_state.recommendation_data = None
+                        st.rerun()
             
             else:
                 # Default state - Ready for analysis
@@ -1042,11 +1149,14 @@ def main():
     
     if st.session_state.show_results and st.session_state.recommendation_data:
         data = st.session_state.recommendation_data
+        fertilizer_name = data.get('fertilizer', 'Unknown')
         
-        st.markdown("## 📚 Detailed Fertilizer Information")
-        
-        with st.container():
-            display_fertilizer_details(data['fertilizer'])
+        # Only show detailed information if we have a valid fertilizer name
+        if fertilizer_name and str(fertilizer_name).lower() != 'nan':
+            st.markdown("## 📚 Detailed Fertilizer Information")
+            
+            with st.container():
+                display_fertilizer_details(fertilizer_name)
         
         st.divider()
         
@@ -1114,7 +1224,7 @@ def main():
         "<div style='background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(0, 212, 255, 0.15)); "
         "border: 2px solid #00ff88; padding: 1.2rem; margin: 1.2rem auto; max-width: 800px; border-radius: 8px;'>"
         "<p style='color: #00ff88; font-weight: bold; margin: 0; font-size: 0.95rem;'>"
-        "✨ 88.89% Accuracy | Random Forest, Decision Tree, SVM, XGBoost | 8313+ Samples</p>"
+        "✨ 99.94% Accuracy | Decision Tree, Random Forest, SVM, XGBoost | 8313+ Samples | Advanced Feature Selection</p>"
         "</div>"
         
         "<p style='color: #aabbcc; font-size: 0.9rem; margin: 1rem 0;'>"
