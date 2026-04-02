@@ -25,15 +25,18 @@ import numpy as np
 import pandas as pd
 import joblib
 import warnings
-from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
+from sklearn.preprocessing import LabelEncoder, StandardScaler, PolynomialFeatures
+from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV, StratifiedKFold, cross_val_score
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier, GradientBoostingClassifier
 from sklearn.svm import SVC
+from sklearn.preprocessing import RobustScaler
+from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
-    confusion_matrix
+    confusion_matrix,
+    f1_score
 )
 
 # Try importing XGBoost, fall back if not available
@@ -255,6 +258,7 @@ def merge_datasets(datasets):
 def normalize_numerical_features(df, numerical_cols=['N', 'P', 'K', 'PH']):
     """
     Normalize numerical features to 0-100 range for consistency.
+    Uses RobustScaler for better outlier handling.
     
     Parameters:
     -----------
@@ -269,15 +273,102 @@ def normalize_numerical_features(df, numerical_cols=['N', 'P', 'K', 'PH']):
     """
     df = df.copy()
     
+    # Use RobustScaler for better outlier handling
+    from sklearn.preprocessing import RobustScaler
+    scaler = RobustScaler()
+    
     for col in numerical_cols:
         if col in df.columns:
+            # RobustScaler for outlier resistance
+            df[col] = scaler.fit_transform(df[[col]])
+            # Normalize to 0-100 range
             min_val = df[col].min()
             max_val = df[col].max()
-            
             if max_val != min_val:
                 df[col] = ((df[col] - min_val) / (max_val - min_val)) * 100
             else:
-                df[col] = 0.0
+                df[col] = 50.0  # Default to median if no variance
+    
+    return df
+
+
+def create_advanced_features(df, numerical_cols=['N', 'P', 'K', 'PH']):
+    """
+    Create advanced feature engineering for improved accuracy.
+    Includes polynomial features, interactions, and domain-specific features.
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input dataframe with normalized features
+    numerical_cols : list
+        Names of numerical columns
+    
+    Returns:
+    --------
+    pd.DataFrame : Dataframe with engineered features
+    """
+    df = df.copy()
+    
+    if all(col in df.columns for col in ['N', 'P', 'K']):
+        # NPK Ratios
+        df['N_P_Ratio'] = df['N'] / (df['P'] + 1)
+        df['N_K_Ratio'] = df['N'] / (df['K'] + 1)
+        df['P_K_Ratio'] = df['P'] / (df['K'] + 1)
+        df['K_P_Ratio'] = df['K'] / (df['P'] + 1)
+        
+        # NPK Sum and Balance
+        df['NPK_Sum'] = df['N'] + df['P'] + df['K']
+        df['NPK_Balance'] = df[['N', 'P', 'K']].std(axis=1)
+        df['NPK_Mean'] = df[['N', 'P', 'K']].mean(axis=1)
+        
+        # NPK Product (interaction term)
+        df['N_P_Product'] = df['N'] * df['P']
+        df['N_K_Product'] = df['N'] * df['K']
+        df['P_K_Product'] = df['P'] * df['K']
+        df['NPK_Product'] = df['N'] * df['P'] * df['K']
+        
+        # Polynomial features (degree 2)
+        df['N_Squared'] = df['N'] ** 2
+        df['P_Squared'] = df['P'] ** 2
+        df['K_Squared'] = df['K'] ** 2
+        
+        # Dominant nutrient (one-hot encoded concept)
+        df['N_Dominant'] = (df['N'] > df['P']) & (df['N'] > df['K'])
+        df['P_Dominant'] = (df['P'] > df['N']) & (df['P'] > df['K'])
+        df['K_Dominant'] = (df['K'] > df['N']) & (df['K'] > df['P'])
+        
+        # Nutrient deficiency and excess
+        df['High_N'] = (df['N'] > df['N'].quantile(0.75)).astype(int)
+        df['High_P'] = (df['P'] > df['P'].quantile(0.75)).astype(int)
+        df['High_K'] = (df['K'] > df['K'].quantile(0.75)).astype(int)
+        df['Low_N'] = (df['N'] < df['N'].quantile(0.25)).astype(int)
+        df['Low_P'] = (df['P'] < df['P'].quantile(0.25)).astype(int)
+        df['Low_K'] = (df['K'] < df['K'].quantile(0.25)).astype(int)
+    
+    # pH-based features (enhanced)
+    if 'PH' in df.columns:
+        # pH level categorization
+        ph_categories = pd.cut(df['PH'], 
+                               bins=[0, 5.5, 6.5, 7.5, 8.5, 14],
+                               labels=['Very_Acidic', 'Acidic', 'Neutral', 'Alkaline', 'Very_Alkaline'])
+        df['pH_Level'] = ph_categories.cat.codes.fillna(ph_categories.cat.codes.median())
+        
+        # pH-based polynomial features
+        df['PH_Squared'] = df['PH'] ** 2
+        
+        # Distance from neutral pH
+        df['pH_Distance_From_Neutral'] = abs(df['PH'] - 7.0)
+        
+        # pH-Nutrient interactions
+        if 'N' in df.columns:
+            df['PH_N_Interaction'] = df['PH'] * df['N']
+            df['PH_P_Interaction'] = df['PH'] * df['P']
+            df['PH_K_Interaction'] = df['PH'] * df['K']
+    
+    # Convert boolean columns to int
+    bool_cols = df.select_dtypes(include=['bool']).columns
+    df[bool_cols] = df[bool_cols].astype(int)
     
     return df
 
@@ -333,7 +424,8 @@ def encode_categorical_features(df, crop_column='CROP', fertilizer_column='FERTI
 
 def tune_random_forest(X_train, y_train):
     """
-    Tune Random Forest hyperparameters using GridSearchCV.
+    Tune Random Forest hyperparameters using GridSearchCV with StratifiedKFold.
+    Enhanced parameter search space for better accuracy.
     
     Parameters:
     -----------
@@ -349,19 +441,23 @@ def tune_random_forest(X_train, y_train):
     print("\n  Tuning Random Forest hyperparameters...")
     
     param_grid = {
-        'n_estimators': [50, 100, 150],
-        'max_depth': [5, 10, 15],
-        'min_samples_split': [2, 5],
-        'min_samples_leaf': [1, 2]
+        'n_estimators': [150, 200, 250],
+        'max_depth': [10, 12, 15, 20],
+        'min_samples_split': [2, 3, 4],
+        'min_samples_leaf': [1, 2, 3],
+        'max_features': ['sqrt', 'log2', 0.3],
+        'max_samples': [0.8, 0.9, 1.0]
     }
     
-    rf = RandomForestClassifier(random_state=42, n_jobs=-1)
+    rf = RandomForestClassifier(random_state=42, n_jobs=-1, class_weight='balanced_subsample')
+    
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     
     grid_search = GridSearchCV(
         rf,
         param_grid,
-        cv=3,
-        scoring='accuracy',
+        cv=skf,
+        scoring='f1_macro',  # Better for imbalanced classes
         n_jobs=-1,
         verbose=0
     )
@@ -376,7 +472,8 @@ def tune_random_forest(X_train, y_train):
 
 def tune_svm(X_train, y_train):
     """
-    Tune SVM hyperparameters using RandomizedSearchCV.
+    Tune SVM hyperparameters using RandomizedSearchCV with expanded search space.
+    Enhanced for better accuracy.
     
     Parameters:
     -----------
@@ -392,19 +489,20 @@ def tune_svm(X_train, y_train):
     print("\n  Tuning SVM hyperparameters...")
     
     param_dist = {
-        'C': [0.1, 1, 10, 100],
+        'C': [0.1, 0.5, 1, 5, 10, 50, 100],
         'kernel': ['linear', 'rbf', 'poly'],
-        'gamma': ['scale', 'auto', 0.01, 0.1]
+        'gamma': ['scale', 'auto', 0.001, 0.01, 0.1, 1],
+        'class_weight': ['balanced', None]
     }
     
-    svm = SVC(random_state=42)
+    svm = SVC(random_state=42, probability=True)
     
     random_search = RandomizedSearchCV(
         svm,
         param_dist,
-        n_iter=10,
-        cv=3,
-        scoring='accuracy',
+        n_iter=20,
+        cv=5,
+        scoring='f1_macro',
         n_jobs=-1,
         verbose=0,
         random_state=42
@@ -420,7 +518,7 @@ def tune_svm(X_train, y_train):
 
 def tune_xgboost(X_train, y_train):
     """
-    Tune XGBoost hyperparameters using GridSearchCV.
+    Tune XGBoost hyperparameters using GridSearchCV with enhanced parameters.
     
     Parameters:
     -----------
@@ -440,19 +538,25 @@ def tune_xgboost(X_train, y_train):
     print("\n  Tuning XGBoost hyperparameters...")
     
     param_grid = {
-        'max_depth': [3, 5, 7],
-        'learning_rate': [0.01, 0.1, 0.3],
-        'n_estimators': [50, 100, 150],
-        'subsample': [0.7, 0.8, 1.0]
+        'max_depth': [3, 5, 7, 9],
+        'learning_rate': [0.01, 0.05, 0.1, 0.2],
+        'n_estimators': [100, 150, 200],
+        'subsample': [0.6, 0.8, 1.0],
+        'colsample_bytree': [0.6, 0.8, 1.0]
     }
     
-    xgb = XGBClassifier(random_state=42, use_label_encoder=False, eval_metric='logloss')
+    xgb = XGBClassifier(
+        random_state=42, 
+        use_label_encoder=False, 
+        eval_metric='logloss',
+        scale_pos_weight=1
+    )
     
     grid_search = GridSearchCV(
         xgb,
         param_grid,
-        cv=3,
-        scoring='accuracy',
+        cv=5,
+        scoring='f1_macro',
         n_jobs=-1,
         verbose=0
     )
@@ -555,6 +659,39 @@ def train_models(X_train, y_train, enable_tuning=True):
         if xgb_model is not None:
             models['XGBoost'] = xgb_model
             print("✓ XGBoost trained")
+    
+    # Gradient Boosting Classifier
+    print("[5/5] Training Gradient Boosting Classifier...")
+    gb_model = GradientBoostingClassifier(
+        n_estimators=150,
+        learning_rate=0.1,
+        max_depth=5,
+        min_samples_split=5,
+        min_samples_leaf=2,
+        random_state=42
+    )
+    gb_model.fit(X_train, y_train)
+    models['Gradient Boosting'] = gb_model
+    print("✓ Gradient Boosting trained")
+    
+    # Create Voting Classifier Ensemble (Combined Best Models)
+    print("\n[ENSEMBLE] Creating Voting Classifier...")
+    voting_estimators = [
+        ('rf', models['Random Forest']),
+        ('svm', models['SVM']),
+        ('gb', models['Gradient Boosting'])
+    ]
+    
+    if 'XGBoost' in models:
+        voting_estimators.append(('xgb', models['XGBoost']))
+    
+    voting_clf = VotingClassifier(
+        estimators=voting_estimators,
+        voting='soft'  # Use probability predictions
+    )
+    voting_clf.fit(X_train, y_train)
+    models['Voting Ensemble'] = voting_clf
+    print("✓ Voting Ensemble trained")
     
     return models
 
@@ -780,11 +917,31 @@ def predict_fertilizer(N, P, K, pH, crop, model=None, crop_encoder=None,
         model, crop_encoder, fertilizer_encoder, scaler = load_prediction_models(model_dir)
     
     try:
-        # Prepare input features
+        # Prepare input features - create a temporary dataframe for feature engineering
+        temp_df = pd.DataFrame({
+            'N': [N],
+            'P': [P],
+            'K': [K],
+            'PH': [pH],
+            'CROP': [crop]
+        })
+        
+        # Apply advanced feature engineering
+        temp_df = create_advanced_features(temp_df)
+        
+        # Encode crop
         crop_encoded = crop_encoder.transform([crop])[0]
         
-        # Create feature array
-        features = np.array([[N, P, K, pH, crop_encoded]])
+        # Create feature array with all engineered features
+        feature_cols = ['N', 'P', 'K', 'PH', 'N_P_Ratio', 'N_K_Ratio', 'P_K_Ratio', 
+                       'NPK_Sum', 'NPK_Balance', 'N_P_Product', 'N_K_Product', 
+                       'P_K_Product', 'High_N', 'High_P', 'High_K', 'pH_Level', 'CROP']
+        
+        # Replace CROP with encoded value
+        temp_df['CROP'] = crop_encoded
+        
+        # Extract features in correct order
+        features = temp_df[feature_cols].values
         
         # Scale features
         features_scaled = scaler.transform(features)
@@ -828,7 +985,19 @@ def main():
         merged_df = normalize_numerical_features(merged_df)
         print("✓ Numerical features normalized to 0-100 range")
         
-        # ====== Step 4: Encode Categorical Features ======
+        # ====== Step 3.5: Create Advanced Features ======
+        print("\n" + "=" * 70)
+        print("ADVANCED FEATURE ENGINEERING")
+        print("=" * 70)
+        merged_df = create_advanced_features(merged_df)
+        print("✓ Advanced features created:")
+        print("  - NPK Ratios (N_P, N_K, P_K)")
+        print("  - NPK Balance Metrics (Sum, Balance Std Dev)")
+        print("  - Nutrient Interactions (Products)")
+        print("  - High Nutrient Flags (Binary)")
+        print("  - pH Level Categorization")
+        
+        # ====== Step 5: Encode Categorical Features ======
         print("\n" + "=" * 70)
         print("FEATURE ENCODING")
         print("=" * 70)
@@ -837,19 +1006,24 @@ def main():
         print(f"  - Unique crops: {len(crop_encoder.classes_)}")
         print(f"  - Unique fertilizers: {len(fertilizer_encoder.classes_)}")
         
-        # ====== Step 5: Separate Features and Target ======
-        X = merged_df[['N', 'P', 'K', 'PH', 'CROP']].values
+        # ====== Step 6: Separate Features and Target ======
+        # Include engineered features for better model accuracy
+        feature_cols = ['N', 'P', 'K', 'PH', 'N_P_Ratio', 'N_K_Ratio', 'P_K_Ratio', 
+                       'NPK_Sum', 'NPK_Balance', 'N_P_Product', 'N_K_Product', 
+                       'P_K_Product', 'High_N', 'High_P', 'High_K', 'pH_Level', 'CROP']
+        X = merged_df[feature_cols].values
         y = merged_df['FERTILIZER'].values
         
-        # ====== Step 6: Feature Scaling ======
+        # ====== Step 7: Feature Scaling ======
         print("\n" + "=" * 70)
         print("FEATURE SCALING")
         print("=" * 70)
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
         print("✓ Features scaled using StandardScaler")
+        print(f"  - Total features: {len(feature_cols)} (including engineered)")
         
-        # ====== Step 7: Train-Test Split ======
+        # ====== Step 8: Train-Test Split ======
         print("\n" + "=" * 70)
         print("TRAIN-TEST SPLIT")
         print("=" * 70)
@@ -863,10 +1037,10 @@ def main():
         print(f"✓ Train set size: {X_train.shape[0]} samples (80%)")
         print(f"✓ Test set size: {X_test.shape[0]} samples (20%)")
         
-        # ====== Step 8: Train Models ======
+        # ====== Step 9: Train Models ======
         models = train_models(X_train, y_train, enable_tuning=True)
         
-        # ====== Step 9: Evaluate Models ======
+        # ====== Step 10: Evaluate Models ======
         best_model, best_model_name, results = evaluate_models(
             models, X_test, y_test, fertilizer_encoder
         )
@@ -878,14 +1052,14 @@ def main():
         print(f"✓ Accuracy: {results[best_model_name]['accuracy']:.4f} " +
               f"({results[best_model_name]['accuracy']*100:.2f}%)")
         
-        # ====== Step 10: Print Feature Importance ======
-        feature_names = ['N', 'P', 'K', 'pH', 'Crop']
+        # ====== Step 11: Print Feature Importance ======
+        feature_names = feature_cols  # Use the actual feature columns
         print_feature_importance(best_model, best_model_name, feature_names)
         
-        # ====== Step 11: Save Models ======
+        # ====== Step 12: Save Models ======
         save_models(best_model, crop_encoder, fertilizer_encoder, scaler)
         
-        # ====== Step 12: Sample Predictions ======
+        # ====== Step 13: Sample Predictions ======
         print("\n" + "=" * 70)
         print("SAMPLE PREDICTIONS")
         print("=" * 70)

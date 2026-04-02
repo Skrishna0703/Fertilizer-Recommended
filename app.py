@@ -652,7 +652,7 @@ def create_npk_chart(N, P, K):
 
 
 def display_fertilizer_details(fertilizer_type):
-    """Display detailed information about the recommended fertilizer in 2-column layout with dropdown menus."""
+    """Display essential fertilizer information in 5 key points with vibrant colors and readable text."""
     if fertilizer_type not in FERTILIZER_DATABASE:
         st.warning(f"Information not available for {fertilizer_type}")
         return
@@ -673,129 +673,101 @@ def display_fertilizer_details(fertilizer_type):
         if "commercial_name" in info:
             st.caption(f"_{info['commercial_name']}_")
     
-    # ======================= COLUMN 2: EXPANDABLE DETAILS =======================
+    # ======================= COLUMN 2: 5 KEY POINTS WITH VIBRANT COLORS =======================
     with col_details:
-        st.subheader("📋 Information")
+        st.subheader("📋 Key Information")
         
-        # 1. Nutrient Composition
-        if "nutrient_composition" in info:
-            with st.expander("🧪 Nutrient Composition", expanded=True):
-                st.info(info["nutrient_composition"])
+        # POINT 1: Nutrient Composition (BRIGHT CYAN)
+        st.markdown(
+            f"""
+            <div style='background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); 
+                        padding: 15px; border-left: 6px solid #00838f; border-radius: 8px; 
+                        margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);'>
+                <p style='color: #ffffff; margin: 0; font-size: 18px; font-weight: bold;'>🧪 1. What Nutrients Does It Contain?</p>
+                <p style='color: #ffffff; margin: 10px 0 0 0; font-weight: bold; font-size: 16px;'>{info.get('nutrient_composition', 'N/A')}</p>
+            </div>
+            """, unsafe_allow_html=True
+        )
         
-        # 2. What it is
-        if "what_it_is" in info:
-            with st.expander("❓ What Is It?"):
-                st.write(info["what_it_is"])
+        # POINT 2: What Is It (BRIGHT LIME GREEN)
+        st.markdown(
+            f"""
+            <div style='background: linear-gradient(135deg, #76ff03 0%, #558b2f 100%); 
+                        padding: 15px; border-left: 6px solid #33691e; border-radius: 8px; 
+                        margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);'>
+                <p style='color: #1b5e20; margin: 0; font-size: 18px; font-weight: bold;'>❓ 2. What Is It & How Does It Help in Crop Nutrition?</p>
+                <p style='color: #1b5e20; margin: 10px 0 0 0; font-size: 15px; font-weight: 500;'>{info.get('what_it_is', info.get('description', 'N/A'))}</p>
+            </div>
+            """, unsafe_allow_html=True
+        )
         
-        # 3. Description
-        with st.expander("📖 Description"):
-            st.write(info["description"])
+        # POINT 3: Benefits for Farmers (BRIGHT ORANGE)
+        benefits_list = ""
+        if isinstance(info.get("benefits"), list):
+            for benefit in info["benefits"][:5]:
+                benefits_list += f"<li style='color: #bf360c; margin: 8px 0; font-size: 15px; font-weight: 500;'>{benefit}</li>"
+        else:
+            benefits_list = f"<p style='color: #bf360c; font-weight: 500;'>{info.get('benefits', 'N/A')}</p>"
         
-        # 4. Benefits
-        with st.expander("✅ Key Benefits"):
-            if isinstance(info.get("benefits"), list):
-                for benefit in info["benefits"]:
-                    st.write(f"• {benefit}")
-            else:
-                st.write(info.get("benefits", ""))
+        st.markdown(
+            f"""
+            <div style='background: linear-gradient(135deg, #ffb74d 0%, #ff9800 100%); 
+                        padding: 15px; border-left: 6px solid #e65100; border-radius: 8px; 
+                        margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);'>
+                <p style='color: #bf360c; margin: 0; font-size: 18px; font-weight: bold;'>💚 3. How Does It Benefit Farmers?</p>
+                <ul style='margin: 10px 0 0 20px; padding: 0;'>{benefits_list}</ul>
+            </div>
+            """, unsafe_allow_html=True
+        )
         
-        # 5. Ideal Crops
+        # POINT 4: Ideal Crops (BRIGHT PURPLE)
         if "ideal_crops" in info:
-            with st.expander("🌽 Ideal Crops"):
-                crops = info["ideal_crops"]
-                col1, col2 = st.columns(2)
-                for idx, crop in enumerate(crops):
-                    if idx % 2 == 0:
-                        col1.write(f"✓ {crop}")
-                    else:
-                        col2.write(f"✓ {crop}")
+            crops = info["ideal_crops"]
+            crops_text = ", ".join(crops)
+            st.markdown(
+                f"""
+                <div style='background: linear-gradient(135deg, #ba68c8 0%, #8e24aa 100%); 
+                            padding: 15px; border-left: 6px solid #6a1b9a; border-radius: 8px; 
+                            margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);'>
+                    <p style='color: #ffffff; margin: 0; font-size: 18px; font-weight: bold;'>🌽 4. What Are the Crops in Which Farmers Could Use It?</p>
+                    <p style='color: #ffffff; margin: 10px 0 0 0; font-weight: 600; font-size: 15px;'>{crops_text}</p>
+                </div>
+                """, unsafe_allow_html=True
+            )
         
-        # 6. Deficiency Symptoms
-        if "deficiency_symptoms" in info:
-            with st.expander("⚠️ Deficiency Symptoms"):
-                st.warning(info["deficiency_symptoms"])
+        # POINT 5: Application & Dosage (BRIGHT PINK/RED)
+        timing_text = info.get('application_timing', 'N/A')
+        usage_text = info.get('usage', 'N/A')
+        try:
+            first_line = str(usage_text).split('.')[0] if usage_text else 'N/A'
+        except:
+            first_line = str(usage_text)
         
-        # 7. Application Guide
-        with st.expander("🌱 Application Guide"):
-            col_app_timing, col_app_dosage = st.columns(2)
-            
-            with col_app_timing:
-                st.write("**Timing:**")
-                st.markdown(f"> {info.get('application_timing', 'N/A')}")
-            
-            with col_app_dosage:
-                st.write("**Total Dosage:**")
-                usage_text = info.get('usage', 'N/A')
-                first_line = usage_text.split('.')[0]
-                st.markdown(f"> {first_line}")
-            
-            if "method" in info:
-                st.write("**Method:**")
-                if isinstance(info["method"], dict):
-                    for method, desc in info["method"].items():
-                        st.write(f"- **{method.capitalize()}:** {desc}")
-                else:
-                    st.write(info["method"])
+        col_timing, col_dosage = st.columns(2)
         
-        # 8. Dosage Recommendations
-        if "dosage" in info:
-            with st.expander("📊 Dosage Recommendations"):
-                if isinstance(info["dosage"], dict):
-                    dosage_items = list(info["dosage"].items())
-                    cols = st.columns(min(3, len(dosage_items)))
-                    for idx, (condition, dose) in enumerate(dosage_items):
-                        with cols[idx % 3]:
-                            st.metric(condition, dose)
-                else:
-                    st.write(info["dosage"])
+        with col_timing:
+            st.markdown(
+                f"""
+                <div style='background: linear-gradient(135deg, #ff69b4 0%, #e91e63 100%); 
+                            padding: 12px; border-left: 6px solid #c2185b; border-radius: 8px; 
+                            margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);'>
+                    <p style='color: #ffffff; margin: 0; font-size: 14px; font-weight: bold;'>🌾 When to Apply</p>
+                    <p style='color: #ffffff; margin: 8px 0 0 0; font-weight: bold; font-size: 13px;'>{timing_text}</p>
+                </div>
+                """, unsafe_allow_html=True
+            )
         
-        # 9. Storage & Types
-        with st.expander("📦 Storage & Types"):
-            col_storage, col_types = st.columns(2)
-            
-            with col_storage:
-                st.write("**Storage Tips:**")
-                if "storage" in info:
-                    st.write(info["storage"])
-            
-            with col_types:
-                st.write("**Types Available:**")
-                if "types" in info and isinstance(info["types"], list):
-                    for i, fert_type in enumerate(info["types"], 1):
-                        st.write(f"{i}. {fert_type}")
-        
-        # 10. Brands & Price
-        with st.expander("🏢 Brands & Pricing"):
-            col_brands, col_price = st.columns(2)
-            
-            with col_brands:
-                st.write("**Popular Brands:**")
-                if "brands" in info:
-                    st.write(info["brands"])
-            
-            with col_price:
-                st.write("**Price Indication:**")
-                if "price_indicator" in info:
-                    st.info(info["price_indicator"])
-        
-        # 11. Special Information
-        if fertilizer_type == "MOP" and "mahadhan_info" in info:
-            with st.expander("ℹ️ Special Information"):
-                st.info(f"**Mahadhan MOP:** {info['mahadhan_info']}")
-        
-        if fertilizer_type == "Compost":
-            with st.expander("♻️ Sustainability Benefits"):
-                col_soil, col_sustain = st.columns(2)
-                
-                with col_soil:
-                    st.write("**Soil Improvement:**")
-                    if "soil_improvement" in info:
-                        for benefit in info["soil_improvement"]:
-                            st.write(f"• {benefit}")
-                
-                with col_sustain:
-                    if "sustainability" in info:
-                        st.success(info["sustainability"])
+        with col_dosage:
+            st.markdown(
+                f"""
+                <div style='background: linear-gradient(135deg, #ff6b6b 0%, #f44336 100%); 
+                            padding: 12px; border-left: 6px solid #d32f2f; border-radius: 8px; 
+                            margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);'>
+                    <p style='color: #ffffff; margin: 0; font-size: 14px; font-weight: bold;'>📊 Recommended Dosage</p>
+                    <p style='color: #ffffff; margin: 8px 0 0 0; font-weight: bold; font-size: 13px;'>{first_line}</p>
+                </div>
+                """, unsafe_allow_html=True
+            )
 
 
 def render_sidebar():
@@ -1117,32 +1089,63 @@ def main():
             )
     
     # =====================================================================
-    # FOOTER
+    # FOOTER - Simple About Section
     # =====================================================================
     
     st.divider()
     
-    footer_cols = st.columns(3)
-    with footer_cols[0]:
-        st.markdown(
-            "<p style='text-align: center; color: #999999; font-size: 0.85rem;'>"
-            "🌾 Precision Nutrient Management</p>",
-            unsafe_allow_html=True
-        )
+    footer_content = (
+        "<div style='text-align: center; padding: 2rem; "
+        "background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%); "
+        "border-radius: 12px; margin-top: 2rem; border: 2px solid #00ff88;'>"
+        
+        "<h2 style='color: #00ff88; font-size: 1.8rem; margin-bottom: 0.5rem; "
+        "text-transform: uppercase; letter-spacing: 2px; font-weight: bold;'>"
+        "🌾 About This Application</h2>"
+        
+        "<h3 style='color: #00d4ff; font-size: 1.2rem; margin: 0.8rem 0;'>"
+        "AI-Powered Fertilizer Recommendation System</h3>"
+        
+        "<p style='color: #aabbcc; font-size: 0.95rem; line-height: 1.5; margin: 1rem auto; "
+        "max-width: 900px;'>"
+        "An intelligent ML application that analyzes soil composition and recommends "
+        "optimal fertilizer combinations for maximum crop yield and soil health.</p>"
+        
+        "<div style='background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(0, 212, 255, 0.15)); "
+        "border: 2px solid #00ff88; padding: 1.2rem; margin: 1.2rem auto; max-width: 800px; border-radius: 8px;'>"
+        "<p style='color: #00ff88; font-weight: bold; margin: 0; font-size: 0.95rem;'>"
+        "✨ 88.89% Accuracy | Random Forest, Decision Tree, SVM, XGBoost | 8313+ Samples</p>"
+        "</div>"
+        
+        "<p style='color: #aabbcc; font-size: 0.9rem; margin: 1rem 0;'>"
+        "🛠️ Built with: Streamlit • scikit-learn • XGBoost • Pandas • NumPy • Plotly</p>"
+        
+        "<div style='display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; "
+        "margin: 1.2rem 0; max-width: 800px; margin-left: auto; margin-right: auto;'>"
+        "<div style='background: #ff6b6b; padding: 0.5rem; border-radius: 6px; color: white; "
+        "font-weight: bold; font-size: 0.8rem;'>🌾 Urea</div>"
+        "<div style='background: #4ecdc4; padding: 0.5rem; border-radius: 6px; color: white; "
+        "font-weight: bold; font-size: 0.8rem;'>🌱 DAP</div>"
+        "<div style='background: #ffd93d; padding: 0.5rem; border-radius: 6px; color: white; "
+        "font-weight: bold; font-size: 0.8rem;'>🎯 NPK</div>"
+        "<div style='background: #aa96da; padding: 0.5rem; border-radius: 6px; color: white; "
+        "font-weight: bold; font-size: 0.8rem;'>✨ SSP</div>"
+        "<div style='background: #f38181; padding: 0.5rem; border-radius: 6px; color: white; "
+        "font-weight: bold; font-size: 0.8rem;'>💎 MOP</div>"
+        "<div style='background: #95e1d3; padding: 0.5rem; border-radius: 6px; color: white; "
+        "font-weight: bold; font-size: 0.8rem;'>⚡ Zinc</div>"
+        "<div style='background: #f78fb3; padding: 0.5rem; border-radius: 6px; color: white; "
+        "font-weight: bold; font-size: 0.8rem;'>🌍 Compost</div>"
+        "<div style='background: #667eea; padding: 0.5rem; border-radius: 6px; color: white; "
+        "font-weight: bold; font-size: 0.8rem;'>🔬 AI Ready</div>"
+        "</div>"
+        
+        "<p style='color: #666677; font-size: 0.8rem; margin-top: 1rem;'>"
+        "© 2026 Fertilizer Recommendation AI | All Rights Reserved</p>"
+        "</div>"
+    )
     
-    with footer_cols[1]:
-        st.markdown(
-            "<p style='text-align: center; color: #999999; font-size: 0.85rem;'>"
-            "🤖 Powered by ML Pipeline</p>",
-            unsafe_allow_html=True
-        )
-    
-    with footer_cols[2]:
-        st.markdown(
-            "<p style='text-align: center; color: #999999; font-size: 0.85rem;'>"
-            "v2.0 - 2026</p>",
-            unsafe_allow_html=True
-        )
+    st.markdown(footer_content, unsafe_allow_html=True)
 
 
 # ============================================================================
