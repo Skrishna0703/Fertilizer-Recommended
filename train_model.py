@@ -424,8 +424,8 @@ def encode_categorical_features(df, crop_column='CROP', fertilizer_column='FERTI
 
 def tune_random_forest(X_train, y_train):
     """
-    Tune Random Forest hyperparameters using GridSearchCV with StratifiedKFold.
-    Enhanced parameter search space for better accuracy.
+    Tune Random Forest hyperparameters using RandomizedSearchCV.
+    Balanced search space for efficiency and accuracy.
     
     Parameters:
     -----------
@@ -440,34 +440,35 @@ def tune_random_forest(X_train, y_train):
     """
     print("\n  Tuning Random Forest hyperparameters...")
     
-    param_grid = {
-        'n_estimators': [150, 200, 250],
-        'max_depth': [10, 12, 15, 20],
-        'min_samples_split': [2, 3, 4],
-        'min_samples_leaf': [1, 2, 3],
-        'max_features': ['sqrt', 'log2', 0.3],
-        'max_samples': [0.8, 0.9, 1.0]
+    param_dist = {
+        'n_estimators': [100, 150, 200],
+        'max_depth': [10, 15, 20],
+        'min_samples_split': [2, 3],
+        'min_samples_leaf': [1, 2],
+        'max_features': ['sqrt', 'log2']
     }
     
     rf = RandomForestClassifier(random_state=42, n_jobs=-1, class_weight='balanced_subsample')
     
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     
-    grid_search = GridSearchCV(
+    random_search = RandomizedSearchCV(
         rf,
-        param_grid,
+        param_dist,
+        n_iter=15,
         cv=skf,
-        scoring='f1_macro',  # Better for imbalanced classes
+        scoring='f1_macro',
         n_jobs=-1,
-        verbose=0
+        verbose=0,
+        random_state=42
     )
     
-    grid_search.fit(X_train, y_train)
+    random_search.fit(X_train, y_train)
     
-    print(f"  Best params: {grid_search.best_params_}")
-    print(f"  Best CV score: {grid_search.best_score_:.4f}")
+    print(f"  Best params: {random_search.best_params_}")
+    print(f"  Best CV score: {random_search.best_score_:.4f}")
     
-    return grid_search.best_estimator_
+    return random_search.best_estimator_
 
 
 def tune_svm(X_train, y_train):
@@ -518,7 +519,8 @@ def tune_svm(X_train, y_train):
 
 def tune_xgboost(X_train, y_train):
     """
-    Tune XGBoost hyperparameters using GridSearchCV with enhanced parameters.
+    Tune XGBoost hyperparameters using RandomizedSearchCV.
+    Optimized for efficiency and accuracy.
     
     Parameters:
     -----------
@@ -537,36 +539,37 @@ def tune_xgboost(X_train, y_train):
     
     print("\n  Tuning XGBoost hyperparameters...")
     
-    param_grid = {
-        'max_depth': [3, 5, 7, 9],
-        'learning_rate': [0.01, 0.05, 0.1, 0.2],
-        'n_estimators': [100, 150, 200],
-        'subsample': [0.6, 0.8, 1.0],
-        'colsample_bytree': [0.6, 0.8, 1.0]
+    param_dist = {
+        'max_depth': [3, 5, 7],
+        'learning_rate': [0.05, 0.1, 0.15],
+        'n_estimators': [100, 150],
+        'subsample': [0.7, 0.9],
+        'colsample_bytree': [0.7, 0.9]
     }
     
     xgb = XGBClassifier(
         random_state=42, 
         use_label_encoder=False, 
-        eval_metric='logloss',
-        scale_pos_weight=1
+        eval_metric='logloss'
     )
     
-    grid_search = GridSearchCV(
+    random_search = RandomizedSearchCV(
         xgb,
-        param_grid,
+        param_dist,
+        n_iter=12,
         cv=5,
         scoring='f1_macro',
         n_jobs=-1,
-        verbose=0
+        verbose=0,
+        random_state=42
     )
     
-    grid_search.fit(X_train, y_train)
+    random_search.fit(X_train, y_train)
     
-    print(f"  Best params: {grid_search.best_params_}")
-    print(f"  Best CV score: {grid_search.best_score_:.4f}")
+    print(f"  Best params: {random_search.best_params_}")
+    print(f"  Best CV score: {random_search.best_score_:.4f}")
     
-    return grid_search.best_estimator_
+    return random_search.best_estimator_
 
 
 # ============================================================================
@@ -1014,16 +1017,27 @@ def main():
         X = merged_df[feature_cols].values
         y = merged_df['FERTILIZER'].values
         
-        # ====== Step 7: Feature Scaling ======
+        # ====== Step 7: Feature Selection ======
+        print("\n" + "=" * 70)
+        print("FEATURE SELECTION")
+        print("=" * 70)
+        # Select best 12 features using SelectKBest
+        selector = SelectKBest(f_classif, k=min(12, X.shape[1]))
+        X_selected = selector.fit_transform(X, y)
+        print(f"✓ Selected {X_selected.shape[1]} best features using SelectKBest")
+        print(f"  - Original features: {len(feature_cols)}")
+        print(f"  - Selected features: {X_selected.shape[1]}")
+        
+        # ====== Step 8: Feature Scaling ======
         print("\n" + "=" * 70)
         print("FEATURE SCALING")
         print("=" * 70)
         scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
+        X_scaled = scaler.fit_transform(X_selected)
         print("✓ Features scaled using StandardScaler")
-        print(f"  - Total features: {len(feature_cols)} (including engineered)")
+        print(f"  - Total features: {X_selected.shape[1]} (after feature selection)")
         
-        # ====== Step 8: Train-Test Split ======
+        # ====== Step 9: Train-Test Split ======
         print("\n" + "=" * 70)
         print("TRAIN-TEST SPLIT")
         print("=" * 70)
@@ -1037,10 +1051,10 @@ def main():
         print(f"✓ Train set size: {X_train.shape[0]} samples (80%)")
         print(f"✓ Test set size: {X_test.shape[0]} samples (20%)")
         
-        # ====== Step 9: Train Models ======
+        # ====== Step 10: Train Models ======
         models = train_models(X_train, y_train, enable_tuning=True)
         
-        # ====== Step 10: Evaluate Models ======
+        # ====== Step 11: Evaluate Models ======
         best_model, best_model_name, results = evaluate_models(
             models, X_test, y_test, fertilizer_encoder
         )
@@ -1052,14 +1066,19 @@ def main():
         print(f"✓ Accuracy: {results[best_model_name]['accuracy']:.4f} " +
               f"({results[best_model_name]['accuracy']*100:.2f}%)")
         
-        # ====== Step 11: Print Feature Importance ======
-        feature_names = feature_cols  # Use the actual feature columns
-        print_feature_importance(best_model, best_model_name, feature_names)
+        # ====== Step 12: Print Feature Importance ======
+        selected_feature_indices = selector.get_support(indices=True)
+        selected_feature_names = [feature_cols[i] for i in selected_feature_indices]
+        print_feature_importance(best_model, best_model_name, selected_feature_names)
         
-        # ====== Step 12: Save Models ======
+        # ====== Step 13: Save Models (with selector) ======
+        # Save selector along with other models
+        selector_path = os.path.join('.', 'feature_selector.pkl')
+        joblib.dump(selector, selector_path)
+        print(f"✓ Feature selector saved: {selector_path}")
         save_models(best_model, crop_encoder, fertilizer_encoder, scaler)
         
-        # ====== Step 13: Sample Predictions ======
+        # ====== Step 14: Sample Predictions ======
         print("\n" + "=" * 70)
         print("SAMPLE PREDICTIONS")
         print("=" * 70)
